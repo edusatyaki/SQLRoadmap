@@ -11,26 +11,25 @@
 <body>
 <div id="nav"></div>
 
-<main class="wrap" id="main">
-
-  <section class="hero">
-    <div>
-      <p class="eyebrow">14 chapters &middot; 379 problems &middot; LeetCode + HackerRank</p>
-      <h1>Learn SQL by finishing the whole roadmap.</h1>
-      <p class="lede">Every problem, ordered chapter by chapter — from <code>SELECT</code> to window
-        functions and recursive CTEs. Tick problems off as you solve them, and the class
-        leaderboard updates every week.</p>
-      <div class="pillrow">
-        <span class="pill">161 free problems</span>
-        <span class="pill">218 premium</span>
-        <span class="pill">6,550 points on the table</span>
+<section class="hero-band">
+    <div class="hero-in">
+      <div>
+        <p class="eyebrow">14 chapters &middot; 379 problems &middot; LeetCode + HackerRank</p>
+        <h1>Learn SQL by finishing the whole roadmap.</h1>
+        <p class="lede">Every problem, ordered chapter by chapter &mdash; from <code>SELECT</code>
+          to window functions and recursive CTEs. Solve them on LeetCode and HackerRank, and your
+          accepted submissions are picked up automatically.</p>
+        <div class="pillrow">
+          <span class="pill">161 free problems</span>
+          <span class="pill">218 premium</span>
+          <span class="pill">6,550 points on the table</span>
+        </div>
       </div>
-    </div>
 
-    <div class="card pad" id="join-card">
-      <h2 style="font-size:19px">Start the roadmap</h2>
-      <p class="small muted" style="margin:6px 0 16px">Connect your handles so your solves show up
-        on the leaderboard.</p>
+      <div class="hero-card" id="join-card">
+        <h2>Start the roadmap</h2>
+        <p class="small muted" style="margin:0 0 18px">Connect your handles so your solves are
+          picked up automatically.</p>
       <form id="join" novalidate>
         <div class="field">
           <label for="name">Full name</label>
@@ -73,34 +72,43 @@
           </div>
           <div class="err" id="e-section" hidden></div>
         </div>
-        <button class="btn-primary" type="submit" id="submit" style="width:100%;justify-content:center">
-          Start the roadmap
+        <button class="btn-primary btn-lg" type="submit" id="submit" style="width:100%;justify-content:center">
+          Start the roadmap <span class="arrow" aria-hidden="true">&rarr;</span>
         </button>
         <p class="hint" style="text-align:center;margin-top:10px">
           Saved to the class sheet and to this browser. No password, no email.</p>
       </form>
-      <div id="joined" hidden></div>
+        <div id="joined" hidden></div>
+      </div>
     </div>
   </section>
+
+<main class="wrap" id="main">
 
   <div id="status"></div>
 
-  <section class="stack">
-    <h2>How it works</h2>
-    <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr))">
-      <div class="stat"><span>Step one</span><p style="margin-top:6px">Connect your handles. Your
-        GitHub username identifies you across devices.</p></div>
-      <div class="stat"><span>Step two</span><p style="margin-top:6px">Work down the chapters. Tick each
-        problem when your solution is accepted.</p></div>
-      <div class="stat"><span>Step three</span><p style="margin-top:6px">Easy 10 pts, Medium 20, Hard 30.
-        HackerRank problems score 10.</p></div>
-      <div class="stat"><span>Every week</span><p style="margin-top:6px">The leaderboard reranks and shows
-        who climbed and who slipped.</p></div>
+  <section class="stack" style="gap:26px">
+    <div class="section-head">
+      <h2>How it works</h2>
+      <p>Four steps, then it runs itself.</p>
+    </div>
+    <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div class="step"><span class="n">1</span><b>Connect your handles</b>
+        <p>Your GitHub username identifies you; your LeetCode and HackerRank profiles are what
+          get read.</p></div>
+      <div class="step"><span class="n">2</span><b>Solve on the platform</b>
+        <p>Work down the chapters and get your solution accepted, the same as always.</p></div>
+      <div class="step"><span class="n">3</span><b>We check your submissions</b>
+        <p>Accepted solves are read from your public profile and marked verified &mdash; no
+          ticking required.</p></div>
+      <div class="step"><span class="n">4</span><b>Climb the leaderboard</b>
+        <p>Easy 10 points, Medium 20, Hard 30. Every week the ranking moves.</p></div>
     </div>
   </section>
 
-  <section class="stack">
-    <h2>What's inside</h2>
+  <section class="stack" style="gap:22px">
+    <div class="section-head"><h2>What's inside</h2>
+      <p>Ordered as a teaching sequence, not by problem number.</p></div>
     <div class="card" id="chapters-preview"><div class="empty">Loading chapters…</div></div>
   </section>
 

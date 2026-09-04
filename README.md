@@ -111,12 +111,29 @@ so a page on github.io cannot call them from the browser.
   student's total is platform-confirmed. Rank on verified points instead by sorting on
   `verifiedPoints` in `leaderboard.html`.
 
-## Theme
+## Design
 
-The site is set in Arial throughout and pinned to the light palette: every page carries `data-theme="light"` on its
-`<html>` element, which switches off both dark blocks in `assets/styles.css`. The dark
-palette is still there — delete that attribute from the three pages to follow the viewer's
-OS setting again.
+The visual system is ported from [Newton School of Technology](https://www.newtonschool.co/newton-school-of-technology-nst/home):
+their palette, radii, shadows and component treatment, read off the live site rather than
+eyeballed.
+
+| Token | Value | Used for |
+| --- | --- | --- |
+| `--accent` | `#0673f9` | primary buttons, active state |
+| `--accent-deep` | `#0052cc` | links, hover |
+| `--ink` | `#16191d` | body text, hero ground |
+| `--ink-2` | `#5b6271` | secondary text |
+| `--ink-3` | `#8c95a6` | labels, meta |
+| `--ground` | `#f6f7f9` | page background |
+| `--line` | `#e1e5ea` | borders |
+
+Headings are 600 weight at near-normal tracking, buttons take a 6px radius, cards 12px, and
+shadows stay faint (`0 5px 15px rgba(0,0,0,.06)`) — all matching the source. The landing page
+follows their structure too: a full-bleed dark hero band with the call to action on it, then
+centred section headings over white bands.
+
+Two deliberate departures: the type is **Arial**, not their Mona Sans, and the site is
+**light only** — there is no dark palette to fall out of sync.
 
 ## Updating the problem set
 

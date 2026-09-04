@@ -56,6 +56,19 @@
           <div class="hint" id="h-codeforces"></div>
           <div class="err" id="e-codeforces" hidden></div>
         </div>
+        <div class="field">
+          <label for="enrollment">Enrollment number</label>
+          <input type="text" id="enrollment" name="enrollment" autocomplete="off" spellcheck="false" placeholder="23BCE1234" required>
+          <div class="err" id="e-enrollment" hidden></div>
+        </div>
+        <div class="field">
+          <span class="lbl" id="section-label">Section</span>
+          <div class="row" id="section" role="group" aria-labelledby="section-label" style="gap:8px">
+            <button class="chipbtn" type="button" data-v="Lab 1" aria-pressed="false">Lab 1</button>
+            <button class="chipbtn" type="button" data-v="Lab 2" aria-pressed="false">Lab 2</button>
+          </div>
+          <div class="err" id="e-section" hidden></div>
+        </div>
         <button class="btn-primary" type="submit" id="submit" style="width:100%;justify-content:center">
           Start the roadmap
         </button>
@@ -107,9 +120,20 @@
     name:       { re: /^.{2,60}$/, msg: "Enter your full name." },
     github:     { re: /^[A-Za-z\d](?:[A-Za-z\d]|-(?=[A-Za-z\d])){0,38}$/,
                   msg: "That is not a valid GitHub username (letters, digits and dashes)." },
+    enrollment: { re: /^[A-Za-z\d][A-Za-z\d\/-]{2,29}$/,
+                  msg: "Enter your enrollment number as it appears on your ID card." },
     hackerrank: { re: /^[A-Za-z\d_]{1,50}$/, msg: "Letters, digits and underscores only.", optional: true },
     codeforces: { re: /^[A-Za-z\d_.-]{1,50}$/, msg: "Letters, digits, dots, dashes and underscores only.", optional: true }
   };
+
+  var section = "";
+  document.getElementById("section").addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    section = b.dataset.v;
+    [].forEach.call(this.children, function (c) { c.setAttribute("aria-pressed", String(c === b)); });
+    showError("section", "");
+  });
 
   function showError(field, msg) {
     var el = $("e-" + field);
@@ -128,6 +152,8 @@
       if (!r.re.test(v)) { showError(f, r.msg); ok = false; return; }
       showError(f, "");
     });
+    if (!values.section) { showError("section", "Pick the lab you attend."); ok = false; }
+    else showError("section", "");
     return ok;
   }
 
@@ -178,6 +204,8 @@
     e.preventDefault();
     var values = {
       name: $("name").value.trim(),
+      enrollment: $("enrollment").value.trim().toUpperCase(),
+      section: section,
       github: $("github").value.trim(),
       hackerrank: $("hackerrank").value.trim(),
       codeforces: $("codeforces").value.trim()
@@ -209,6 +237,8 @@
     joined.innerHTML =
       '<p class="eyebrow">Signed in on this device</p>' +
       '<h2 style="font-size:22px;margin:6px 0 4px">' + SQLR.esc(s.name) + "</h2>" +
+      '<p class="small muted mono">' + SQLR.esc(s.section || "") +
+        (s.enrollment ? " · " + SQLR.esc(s.enrollment) : "") + "</p>" +
       '<p class="small muted mono">@' + SQLR.esc(s.github) +
         (s.hackerrank ? " · hr/" + SQLR.esc(s.hackerrank) : "") +
         (s.codeforces ? " · cf/" + SQLR.esc(s.codeforces) : "") + "</p>" +

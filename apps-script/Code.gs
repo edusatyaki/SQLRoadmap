@@ -5,7 +5,7 @@
  * Copy the /exec URL into assets/config.js of the website.
  *
  * Sheets used (run setup() once and they are created for you):
- *   Students  github | name | hackerrank | codeforces | joined | lastSeen
+ *   Students  github | name | enrollment | section | hackerrank | codeforces | joined | lastSeen
  *   Progress  github | problemId | title | chapter | platform | difficulty | points | solvedAt | solved
  */
 
@@ -15,7 +15,8 @@ var SHEET_ID = "";
 
 var STUDENTS = "Students";
 var PROGRESS = "Progress";
-var STUDENT_COLS = ["github", "name", "hackerrank", "codeforces", "joined", "lastSeen"];
+var STUDENT_COLS = ["github", "name", "enrollment", "section", "hackerrank", "codeforces",
+                    "joined", "lastSeen"];
 var PROGRESS_COLS = ["github", "problemId", "title", "chapter", "platform", "difficulty",
                      "points", "solvedAt", "solved"];
 
@@ -119,18 +120,21 @@ function register(student) {
 
   for (var i = 0; i < data.length; i++) {
     if (key(data[i][0]) === gh) {                       // returning student
-      sh.getRange(i + 2, 2, 1, 3).setValues([[
+      sh.getRange(i + 2, 2, 1, 5).setValues([[
         student.name || data[i][1],
-        student.hackerrank || data[i][2],
-        student.codeforces || data[i][3]
+        student.enrollment || data[i][2],
+        student.section || data[i][3],
+        student.hackerrank || data[i][4],
+        student.codeforces || data[i][5]
       ]]);
-      sh.getRange(i + 2, 6).setValue(now);
+      sh.getRange(i + 2, 8).setValue(now);
       return { ok: true, returning: true, student: { solved: solvedMap(gh) } };
     }
   }
 
-  sh.appendRow([student.github, student.name || "", student.hackerrank || "",
-                student.codeforces || "", now, now]);
+  sh.appendRow([student.github, student.name || "", student.enrollment || "",
+                student.section || "", student.hackerrank || "", student.codeforces || "",
+                now, now]);
   return { ok: true, returning: false, student: { solved: {} } };
 }
 
@@ -187,7 +191,7 @@ function touch(gh) {
   var sh = sheet(STUDENTS, STUDENT_COLS);
   var data = rows(sh);
   for (var i = 0; i < data.length; i++) {
-    if (key(data[i][0]) === gh) { sh.getRange(i + 2, 6).setValue(new Date()); return; }
+    if (key(data[i][0]) === gh) { sh.getRange(i + 2, 8).setValue(new Date()); return; }
   }
 }
 
@@ -220,7 +224,8 @@ function leaderboard() {
   students.forEach(function (s) {
     if (!key(s[0])) return;
     acc[key(s[0])] = {
-      name: s[1] || s[0], github: s[0], hackerrank: s[2] || "", codeforces: s[3] || "",
+      name: s[1] || s[0], github: s[0], enrollment: s[2] || "", section: s[3] || "",
+      hackerrank: s[4] || "", codeforces: s[5] || "",
       points: 0, weekPoints: 0, lastWeekPoints: 0, priorPoints: 0,
       solved: 0, weekSolved: 0, lastSolve: null
     };

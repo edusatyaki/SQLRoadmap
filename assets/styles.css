@@ -85,7 +85,7 @@ p{margin:0}
   background:var(--panel);border:1px solid var(--line);color:var(--ink-2)}
 
 /* forms */
-label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:5px}
+label,.lbl{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:5px}
 label .opt{font-weight:400;color:var(--ink-3)}
 input[type=text],input[type=search]{width:100%;font:inherit;color:var(--ink);background:var(--panel-2);
   border:1px solid var(--line);border-radius:8px;padding:9px 11px}

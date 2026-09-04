@@ -4,7 +4,8 @@ A static site for the XShare SQL batch: **379 practice problems** (323 LeetCode 
 56 HackerRank) grouped into 14 chapters, with per-student progress tracking and a weekly
 class leaderboard.
 
-Students register with their name and their GitHub / HackerRank / Codeforces handles, tick
+Students register with their name, enrollment number, lab section (Lab 1 / Lab 2) and their
+GitHub / HackerRank / Codeforces handles, tick
 problems off as they solve them, and their progress is written to a Google Sheet through an
 Apps Script web app. No server, no database, no build step.
 

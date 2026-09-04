@@ -14,17 +14,20 @@ web apps cannot answer the CORS preflight that a JSON content-type would trigger
 | GET | `ping` | — | `{ok, service, time}` |
 | GET | `leaderboard` | — | `{ok, week, rows:[…]}` |
 | GET | `student` | `github` | `{ok, solved:{problemId: iso}}` |
-| POST | `register` | `{student:{name,github,hackerrank,codeforces}}` | `{ok, returning, student:{solved}}` |
+| POST | `register` | `{student:{name,enrollment,section,github,hackerrank,codeforces}}` | `{ok, returning, student:{solved}}` |
 | POST | `solve` | `{github, problemId, chapter, title, platform, difficulty, points, solved, at}` | `{ok}` |
 | POST | `sync` | `{github, student, solved:{id: iso}}` | `{ok, written}` |
 
-Each leaderboard row carries `points`, `weekPoints`, `lastWeekPoints`, `solved`,
+Each leaderboard row carries `enrollment`, `section`, `points`, `weekPoints`, `lastWeekPoints`, `solved`,
 `weekSolved`, `lastSolve`, and four ranks: `rankAll`, `prevRankAll`, `rankWeek`,
 `prevRankWeek`.
 
 ## Sheets
 
-**Students** — `github | name | hackerrank | codeforces | joined | lastSeen`
+**Students** — `github | name | enrollment | section | hackerrank | codeforces | joined | lastSeen`
+
+`section` is `Lab 1` or `Lab 2`. If you created the sheets before these two columns
+existed, delete the `Students` tab and run `setup()` again.
 **Progress** — `github | problemId | title | chapter | platform | difficulty | points | solvedAt | solved`
 
 One Progress row per student per problem, upserted. Un-ticking sets `solved` to `FALSE`

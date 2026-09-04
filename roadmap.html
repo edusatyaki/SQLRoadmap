@@ -250,6 +250,29 @@
   });
 
   /* ---------- ask the platforms what was actually solved ---------- */
+
+  function applyVerification(res) {
+    if (!res || !res.ok) return false;
+    if (res.solved) { solved = res.solved; SQLR.store.setSolved(solved); }
+    if (res.verified) { verified = res.verified; SQLR.store.setVerified(verified); }
+    try { localStorage.setItem("sqlr.lastVerify", String(Date.now())); } catch (e) {}
+    render();
+    return true;
+  }
+
+  /**
+   * Opening the page re-checks the platforms, at most once an hour per browser.
+   * The 30-minute server sweep is the real engine; this just means a student who
+   * comes back to look at their score sees a current one.
+   */
+  function autoVerify() {
+    if (!SQLR.online) return;
+    var last = 0;
+    try { last = Number(localStorage.getItem("sqlr.lastVerify") || 0); } catch (e) {}
+    if (Date.now() - last < 3600000) return;
+    SQLR.get("verify", { github: me.github }).then(applyVerification).catch(function () {});
+  }
+
   $("verify").addEventListener("click", function () {
     if (!SQLR.online) {
       setStatus("warn", "<span>\u2691</span><div>Submission checking needs the class sheet. " +
@@ -263,9 +286,7 @@
     setStatus("", "<span>\u21bb</span><div>Reading your LeetCode and HackerRank profiles\u2026</div>");
     SQLR.get("verify", { github: me.github }).then(function (res) {
       if (!res || !res.ok) throw new Error((res && res.error) || "The check did not complete.");
-      if (res.solved) { solved = res.solved; SQLR.store.setSolved(solved); }
-      if (res.verified) { verified = res.verified; SQLR.store.setVerified(verified); }
-      render();
+      applyVerification(res);
       var found = (res.newlySolved || 0) + (res.newlyVerified || 0);
       setStatus(found ? "good" : "", "<span>" + (found ? "\u2713" : "\u2139") + "</span><div>" +
         (res.newlySolved ? "<b>" + res.newlySolved + " solved on a platform but not ticked here</b> \u2014 added. " : "") +
@@ -304,7 +325,7 @@
         if (changed) { SQLR.store.setSolved(solved); render(); }
       }
       return SQLR.flushQueue();
-    }).catch(function () {});
+    }).then(autoVerify).catch(function () {});
   }).catch(function (err) {
     $("list").innerHTML = '<div class="card"><div class="empty">' + SQLR.esc(err.message) + "</div></div>";
   });

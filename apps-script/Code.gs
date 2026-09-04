@@ -55,6 +55,7 @@ function doGet(e) {
     if (action === "leaderboard") return json(leaderboard());
     if (action === "student") return json(studentProgress(e.parameter.github));
     if (action === "verify") return json(verifyStudent(e.parameter.github));
+    if (action === "status") return json(status());
     return json({ ok: true, service: "SQL Roadmap", time: new Date().toISOString() });
   } catch (err) {
     return json({ ok: false, error: String(err && err.message || err) });
@@ -507,7 +508,35 @@ function verifyAll() {
     }
     Utilities.sleep(1200);            // be gentle with both platforms
   });
-  return report.join("\n");
+  var out = report.join("\n");
+  PropertiesService.getScriptProperties()
+    .setProperty("lastSweep", new Date().toISOString())
+    .setProperty("lastSweepReport", out.slice(0, 8000));
+  return out;
+}
+
+/**
+ * Is the automatic sweep actually set up? A missing trigger is otherwise silent:
+ * nothing errors, verification simply never runs.
+ */
+function status() {
+  var installed = ScriptApp.getProjectTriggers().some(function (t) {
+    return t.getHandlerFunction() === "verifyAll";
+  });
+  var props = PropertiesService.getScriptProperties();
+  var roadmapOk = true, roadmapErr = null;
+  try { roadmapIndex(); } catch (e) { roadmapOk = false; roadmapErr = e.message; }
+  return {
+    ok: true,
+    verifyTriggerInstalled: installed,
+    lastSweep: props.getProperty("lastSweep") || null,
+    lastSweepReport: props.getProperty("lastSweepReport") || null,
+    roadmapReachable: roadmapOk,
+    roadmapError: roadmapErr,
+    students: rows(sheet(STUDENTS, STUDENT_COLS)).length,
+    hint: installed ? "Automatic verification is running."
+                    : "Run installVerifyTrigger() once — nothing is polling the platforms."
+  };
 }
 
 /** Run once from the editor to poll every 30 minutes. */

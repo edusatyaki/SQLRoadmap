@@ -3,7 +3,8 @@
   "use strict";
   var CFG = window.SQL_ROADMAP || {};
   var API = (CFG.apiUrl || "").trim();
-  var LS = { student: "sqlr.student", solved: "sqlr.solved", queue: "sqlr.queue" };
+  var LS = { student: "sqlr.student", solved: "sqlr.solved", queue: "sqlr.queue",
+             verified: "sqlr.verified" };
 
   /* ---------- storage (never throws: private mode / blocked cookies) ------ */
   function read(key, fallback) {
@@ -20,9 +21,17 @@
   var store = {
     student: function () { return read(LS.student, null); },
     setStudent: function (s) { write(LS.student, s); },
-    signOut: function () { try { localStorage.removeItem(LS.student); localStorage.removeItem(LS.solved); } catch (e) {} },
+    signOut: function () {
+      try {
+        localStorage.removeItem(LS.student);
+        localStorage.removeItem(LS.solved);
+        localStorage.removeItem(LS.verified);
+      } catch (e) {}
+    },
     solved: function () { return read(LS.solved, {}); },
     setSolved: function (map) { write(LS.solved, map); },
+    verified: function () { return read(LS.verified, {}); },
+    setVerified: function (map) { write(LS.verified, map); },
     queue: function () { return read(LS.queue, []); },
     setQueue: function (q) { write(LS.queue, q); }
   };

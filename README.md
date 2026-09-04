@@ -4,8 +4,8 @@ A static site for the XShare SQL batch: **379 practice problems** (323 LeetCode 
 56 HackerRank) grouped into 14 chapters, with per-student progress tracking and a weekly
 class leaderboard.
 
-Students register with their name, enrollment number, lab section (Lab 1 / Lab 2) and their
-GitHub / HackerRank / Codeforces handles, tick
+Students register with their name, enrollment number, lab section (Lab 1 / Lab 2), LeetCode
+username and their GitHub / HackerRank / Codeforces handles, tick
 problems off as they solve them, and their progress is written to a Google Sheet through an
 Apps Script web app. No server, no database, no build step.
 
@@ -76,9 +76,44 @@ chapter; LeetCode premium problems are grouped at the bottom of the chapter behi
 11. Window Functions and Ranking · 12. Date and Time Analysis ·
 13. Pivoting and Conditional Aggregation · 14. Recursive Queries and Hierarchies
 
+## Submission verification
+
+Ticking a box is trust-based, so the backend independently reads what each platform publicly
+reports the student solved and stamps those rows as **verified**. Anything a platform confirms
+is also marked solved, so a student who never ticks anything still gets credit for real work.
+
+| Platform | Verified? | How |
+| --- | --- | --- |
+| LeetCode | Yes, going forward | `recentAcSubmissionList` — the **last 20 accepted submissions only** |
+| HackerRank | Yes, full history | the profile's `recent_challenges` endpoint, paginated |
+| Codeforces | N/A | the handle is checked at signup, but this roadmap contains no Codeforces problems |
+
+Run `installVerifyTrigger()` once in the Apps Script editor. `verifyAll()` then sweeps the
+batch every 30 minutes. Students can also press **Check my submissions** on the roadmap page
+to run it for themselves immediately.
+
+This has to live in Apps Script: neither leetcode.com nor hackerrank.com sends CORS headers,
+so a page on github.io cannot call them from the browser.
+
+### Limits worth knowing before you rely on it
+
+- **LeetCode backfill is impossible.** The public API exposes only the last 20 accepted
+  submissions, so problems solved before a student registers are not picked up. Verification
+  is forward-looking; frequent polling is what keeps it complete. A student who solves 25
+  problems between two sweeps will have some go unverified.
+- **The HackerRank endpoint is undocumented.** It needs no login today; HackerRank could
+  change or close it without notice, at which point verification returns nothing rather than
+  failing loudly.
+- **Both need public profiles.** A private profile cannot be read.
+- **Verification confirms a solve, not authorship.** It proves the account solved the problem,
+  not that the student wrote the SQL themselves.
+- The leaderboard still ranks on total points; the **Verified** column shows how much of each
+  student's total is platform-confirmed. Rank on verified points instead by sorting on
+  `verifiedPoints` in `leaderboard.html`.
+
 ## Theme
 
-The site is pinned to the light palette: every page carries `data-theme="light"` on its
+The site is set in Arial throughout and pinned to the light palette: every page carries `data-theme="light"` on its
 `<html>` element, which switches off both dark blocks in `assets/styles.css`. The dark
 palette is still there — delete that attribute from the three pages to follow the viewer's
 OS setting again.

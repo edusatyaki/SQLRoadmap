@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SQL Roadmap — join the batch</title>
 <meta name="description" content="A 379-problem SQL practice roadmap across LeetCode and HackerRank, with a weekly class leaderboard.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232e46b8'/><text x='16' y='22' font-size='15' font-family='monospace' fill='white' text-anchor='middle'>S</text></svg>">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=JetBrains+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232e46b8'/><text x='16' y='22' font-size='15' font-family='Arial' fill='white' text-anchor='middle'>S</text></svg>">
 <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
@@ -44,6 +42,12 @@
           <input type="text" id="github" name="github" autocomplete="off" spellcheck="false" placeholder="riyasharma" required>
           <div class="hint" id="h-github">This is your ID on the leaderboard, so it cannot be changed later.</div>
           <div class="err" id="e-github" hidden></div>
+        </div>
+        <div class="field">
+          <label for="leetcode">LeetCode username</label>
+          <input type="text" id="leetcode" name="leetcode" autocomplete="off" spellcheck="false" placeholder="riya_sharma" required>
+          <div class="hint">Your solves are read from this profile, so it has to match exactly.</div>
+          <div class="err" id="e-leetcode" hidden></div>
         </div>
         <div class="field">
           <label for="hackerrank">HackerRank username <span class="opt">— optional</span></label>
@@ -120,6 +124,8 @@
     name:       { re: /^.{2,60}$/, msg: "Enter your full name." },
     github:     { re: /^[A-Za-z\d](?:[A-Za-z\d]|-(?=[A-Za-z\d])){0,38}$/,
                   msg: "That is not a valid GitHub username (letters, digits and dashes)." },
+    leetcode:   { re: /^[A-Za-z\d_-]{1,40}$/,
+                  msg: "Letters, digits, underscores and dashes only." },
     enrollment: { re: /^[A-Za-z\d][A-Za-z\d\/-]{2,29}$/,
                   msg: "Enter your enrollment number as it appears on your ID card." },
     hackerrank: { re: /^[A-Za-z\d_]{1,50}$/, msg: "Letters, digits and underscores only.", optional: true },
@@ -204,6 +210,7 @@
     e.preventDefault();
     var values = {
       name: $("name").value.trim(),
+      leetcode: $("leetcode").value.trim(),
       enrollment: $("enrollment").value.trim().toUpperCase(),
       section: section,
       github: $("github").value.trim(),
@@ -219,15 +226,30 @@
     var student = Object.assign({}, values, { joined: new Date().toISOString() });
     SQLR.store.setStudent(student);
 
+    // The LeetCode profile check runs on the backend — leetcode.com sends no CORS
+    // headers, so the browser cannot ask it directly.
     SQLR.post("register", { student: student })
       .then(function (res) {
+        if (res && res.leetcodeUnknown) {
+          SQLR.store.signOut();
+          showError("leetcode", "LeetCode has no profile called \u201c" + student.leetcode +
+            "\u201d. Check the spelling on your profile page.");
+          btn.disabled = false;
+          btn.textContent = "Start the roadmap";
+          $("leetcode").focus();
+          return;
+        }
         if (res && res.ok && res.student && res.student.solved) {
           SQLR.store.setSolved(res.student.solved);   // returning student, restore progress
         }
         if (!res || !res.ok) SQLR.enqueue("register", { student: student });
+        location.href = "roadmap.html";
       })
-      .catch(function () { SQLR.enqueue("register", { student: student }); })
-      .then(function () { location.href = "roadmap.html"; });
+      .catch(function () {
+        // Backend unreachable: let them start anyway rather than blocking on our outage.
+        SQLR.enqueue("register", { student: student });
+        location.href = "roadmap.html";
+      });
   });
 
   /* ---------- already signed in ---------- */
@@ -239,7 +261,7 @@
       '<h2 style="font-size:22px;margin:6px 0 4px">' + SQLR.esc(s.name) + "</h2>" +
       '<p class="small muted mono">' + SQLR.esc(s.section || "") +
         (s.enrollment ? " · " + SQLR.esc(s.enrollment) : "") + "</p>" +
-      '<p class="small muted mono">@' + SQLR.esc(s.github) +
+      '<p class="small muted mono">lc/' + SQLR.esc(s.leetcode || "—") + " · @" + SQLR.esc(s.github) +
         (s.hackerrank ? " · hr/" + SQLR.esc(s.hackerrank) : "") +
         (s.codeforces ? " · cf/" + SQLR.esc(s.codeforces) : "") + "</p>" +
       '<div class="row" style="margin-top:16px">' +

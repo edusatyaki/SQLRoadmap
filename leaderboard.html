@@ -4,9 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Leaderboard — SQL Roadmap</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232e46b8'/><text x='16' y='22' font-size='15' font-family='monospace' fill='white' text-anchor='middle'>S</text></svg>">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=JetBrains+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232e46b8'/><text x='16' y='22' font-size='15' font-family='Arial' fill='white' text-anchor='middle'>S</text></svg>">
 <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
@@ -17,7 +15,9 @@
     <p class="eyebrow" id="weeklabel">&nbsp;</p>
     <h1 style="font-size:clamp(24px,4vw,34px)">Leaderboard</h1>
     <p class="muted" style="max-width:62ch">Ranked by points earned. The arrow next to each rank
-      compares this week's standing with where that person stood at the end of last week.</p>
+      compares this week's standing with where that person stood at the end of last week.
+      <b>Verified</b> counts only the problems confirmed against the student's own LeetCode and
+      HackerRank profiles.</p>
   </section>
 
   <div id="status"></div>
@@ -38,9 +38,9 @@
       <table class="lb">
         <thead><tr>
           <th style="width:1%">#</th><th style="width:1%">Move</th><th>Student</th>
-          <th>Solved</th><th id="ptshead">Points this week</th><th>Last solve</th>
+          <th>Solved</th><th>Verified</th><th id="ptshead">Points this week</th><th>Last solve</th>
         </tr></thead>
-        <tbody id="rows"><tr><td colspan="6"><div class="empty">Loading…</div></td></tr></tbody>
+        <tbody id="rows"><tr><td colspan="7"><div class="empty">Loading…</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -118,10 +118,12 @@
           (r.hackerrank ? " · hr/" + SQLR.esc(r.hackerrank) : "") +
           (r.codeforces ? " · cf/" + SQLR.esc(r.codeforces) : "") + "</span></span></td>" +
         '<td class="num">' + (view === "week" ? (r.weekSolved || 0) : (r.solved || 0)) + "</td>" +
+        '<td class="num" title="Confirmed against the student\u2019s LeetCode and HackerRank profiles">' +
+          (r.verifiedSolved || 0) + "</td>" +
         '<td class="num">' + (r[key] || 0).toLocaleString() + "</td>" +
         '<td class="num" style="color:var(--ink-3)">' + ago(r.lastSolve) + "</td>" +
         "</tr>";
-    }).join("") : '<tr><td colspan="6"><div class="empty">Nobody has solved anything yet. Be first.</div></td></tr>';
+    }).join("") : '<tr><td colspan="7"><div class="empty">Nobody has solved anything yet. Be first.</div></td></tr>';
   }
 
   function localRows() {
@@ -140,7 +142,7 @@
       });
       return [{ name: me.name, github: me.github, hackerrank: me.hackerrank,
                 codeforces: me.codeforces, points: pts, weekPoints: week,
-                solved: n, weekSolved: wn, lastSolve: last, prevRankWeek: null, prevRankAll: null }];
+                solved: n, weekSolved: wn, verifiedSolved: 0, lastSolve: last, prevRankWeek: null, prevRankAll: null }];
     });
   }
 

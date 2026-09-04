@@ -4,9 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Roadmap — SQL Roadmap</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232e46b8'/><text x='16' y='22' font-size='15' font-family='monospace' fill='white' text-anchor='middle'>S</text></svg>">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=JetBrains+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232e46b8'/><text x='16' y='22' font-size='15' font-family='Arial' fill='white' text-anchor='middle'>S</text></svg>">
 <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
@@ -35,6 +33,7 @@
       <button class="chipbtn" data-v="HackerRank" aria-pressed="false">HackerRank</button>
     </div>
     <button class="chipbtn" id="f-todo" aria-pressed="false">Hide solved</button>
+    <button class="chipbtn" id="verify">Check my submissions</button>
   </div>
 
   <div id="list"><div class="empty">Loading the roadmap…</div></div>
@@ -59,6 +58,7 @@
   $("foot-user").textContent = "@" + me.github;
 
   var solved = SQLR.store.solved();
+  var verified = SQLR.store.verified();
   var DATA = null;
   var filters = { q: "", access: "all", plat: "all", todo: false };
   var openChapters = {};
@@ -110,12 +110,13 @@
   }
 
   function totals() {
-    var t = { done: 0, pts: 0, all: DATA.problems.length, allPts: 0, week: 0 };
+    var t = { done: 0, pts: 0, all: DATA.problems.length, allPts: 0, week: 0, verified: 0 };
     var thisWeek = SQLR.isoWeek(new Date());
     DATA.problems.forEach(function (p) {
       t.allPts += SQLR.points(p);
       if (solved[p.id]) {
         t.done++; t.pts += SQLR.points(p);
+        if (verified[p.id]) t.verified++;
         if (SQLR.isoWeek(new Date(solved[p.id])) === thisWeek) t.week += SQLR.points(p);
       }
     });
@@ -128,6 +129,7 @@
       '<div class="stat"><b>' + t.done + "</b><span>Solved of " + t.all + "</span></div>" +
       '<div class="stat"><b>' + t.pts.toLocaleString() + "</b><span>Points</span></div>" +
       '<div class="stat"><b>' + t.week.toLocaleString() + "</b><span>This week</span></div>" +
+      '<div class="stat"><b>' + t.verified + "</b><span>Verified</span></div>" +
       '<div class="stat"><b>' + Math.round(t.done / t.all * 100) + "%</b><span>Complete</span></div>";
     $("overall").firstElementChild.style.width = (t.done / t.all * 100) + "%";
   }
@@ -139,6 +141,8 @@
         ' aria-label="Mark ' + SQLR.esc(p.n) + ' solved">' +
       '<span class="p-main"><a class="p-name" href="' + SQLR.esc(p.u) + '" target="_blank" rel="noopener">' +
         SQLR.esc(p.n) + "</a></span>" +
+      (verified[p.id] ? '<span class="tag t-ok" title="Confirmed on ' + p.p +
+        '">&#10003; verified</span>' : "") +
       (p.d ? '<span class="tag t-' + p.d + '">' + p.d + "</span>" : "") +
       '<span class="tag t-plat p-plat">' + p.p + "</span>" +
       '<span class="ch-meta">' + SQLR.points(p) + "</span>" +
@@ -243,6 +247,39 @@
     }, 160);
   });
 
+  /* ---------- ask the platforms what was actually solved ---------- */
+  $("verify").addEventListener("click", function () {
+    if (!SQLR.online) {
+      setStatus("warn", "<span>\u2691</span><div>Submission checking needs the class sheet. " +
+        "It reads your LeetCode and HackerRank profiles from the server, which the browser " +
+        "cannot do directly.</div>");
+      return;
+    }
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = "Checking\u2026";
+    setStatus("", "<span>\u21bb</span><div>Reading your LeetCode and HackerRank profiles\u2026</div>");
+    SQLR.get("verify", { github: me.github }).then(function (res) {
+      if (!res || !res.ok) throw new Error((res && res.error) || "The check did not complete.");
+      if (res.solved) { solved = res.solved; SQLR.store.setSolved(solved); }
+      if (res.verified) { verified = res.verified; SQLR.store.setVerified(verified); }
+      render();
+      var found = (res.newlySolved || 0) + (res.newlyVerified || 0);
+      setStatus(found ? "good" : "", "<span>" + (found ? "\u2713" : "\u2139") + "</span><div>" +
+        (res.newlySolved ? "<b>" + res.newlySolved + " solved on a platform but not ticked here</b> \u2014 added. " : "") +
+        (res.newlyVerified ? "<b>" + res.newlyVerified + " newly verified.</b> " : "") +
+        (found ? "" : "Nothing new. LeetCode only exposes your last 20 accepted submissions, " +
+          "so anything older is picked up by the batch check rather than here.") +
+        "</div>");
+    }).catch(function (err) {
+      setStatus("bad", "<span>\u26a0</span><div><b>Could not check your submissions.</b> " +
+        SQLR.esc(err.message) + "</div>");
+    }).then(function () {
+      btn.disabled = false;
+      btn.textContent = "Check my submissions";
+    });
+  });
+
   /* ---------- boot ---------- */
   syncNote();
   SQLR.roadmap().then(function (data) {
@@ -261,6 +298,7 @@
         Object.keys(res.solved).forEach(function (id) {
           if (!solved[id]) { solved[id] = res.solved[id]; changed = true; }
         });
+        if (res.verified) { verified = res.verified; SQLR.store.setVerified(verified); changed = true; }
         if (changed) { SQLR.store.setSolved(solved); render(); }
       }
       return SQLR.flushQueue();

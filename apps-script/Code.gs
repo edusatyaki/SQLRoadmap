@@ -5,7 +5,10 @@
  * Copy the /exec URL into assets/config.js of the website.
  *
  * Sheets used (run setup() once and they are created for you):
- *   Students  github | name | enrollment | section | hackerrank | codeforces | joined | lastSeen
+ *   Students  github | name | enrollment | section | leetcode | hackerrank | codeforces |
+ *             joined | lastSeen
+ *   Progress  github | problemId | title | chapter | platform | difficulty | points |
+ *             solvedAt | solved | verified | verifiedAt | source
  *   Progress  github | problemId | title | chapter | platform | difficulty | points | solvedAt | solved
  */
 
@@ -15,10 +18,10 @@ var SHEET_ID = "";
 
 var STUDENTS = "Students";
 var PROGRESS = "Progress";
-var STUDENT_COLS = ["github", "name", "enrollment", "section", "hackerrank", "codeforces",
-                    "joined", "lastSeen"];
+var STUDENT_COLS = ["github", "name", "enrollment", "section", "leetcode", "hackerrank",
+                    "codeforces", "joined", "lastSeen"];
 var PROGRESS_COLS = ["github", "problemId", "title", "chapter", "platform", "difficulty",
-                     "points", "solvedAt", "solved"];
+                     "points", "solvedAt", "solved", "verified", "verifiedAt", "source"];
 
 /* ------------------------------------------------------------------ setup */
 
@@ -52,6 +55,7 @@ function doGet(e) {
   try {
     if (action === "leaderboard") return json(leaderboard());
     if (action === "student") return json(studentProgress(e.parameter.github));
+    if (action === "verify") return json(verifyStudent(e.parameter.github));
     return json({ ok: true, service: "SQL Roadmap", time: new Date().toISOString() });
   } catch (err) {
     return json({ ok: false, error: String(err && err.message || err) });
@@ -113,6 +117,11 @@ function asDate(v) {
 
 function register(student) {
   if (!student || !key(student.github)) return { ok: false, error: "A GitHub username is required." };
+  if (!student.leetcode) return { ok: false, error: "A LeetCode username is required." };
+  if (leetcodeProfile(student.leetcode) === null) {
+    return { ok: false, leetcodeUnknown: true,
+             error: "LeetCode has no profile called " + student.leetcode + "." };
+  }
   var sh = sheet(STUDENTS, STUDENT_COLS);
   var data = rows(sh);
   var gh = key(student.github);
@@ -120,21 +129,22 @@ function register(student) {
 
   for (var i = 0; i < data.length; i++) {
     if (key(data[i][0]) === gh) {                       // returning student
-      sh.getRange(i + 2, 2, 1, 5).setValues([[
+      sh.getRange(i + 2, 2, 1, 6).setValues([[
         student.name || data[i][1],
         student.enrollment || data[i][2],
         student.section || data[i][3],
-        student.hackerrank || data[i][4],
-        student.codeforces || data[i][5]
+        student.leetcode || data[i][4],
+        student.hackerrank || data[i][5],
+        student.codeforces || data[i][6]
       ]]);
-      sh.getRange(i + 2, 8).setValue(now);
+      sh.getRange(i + 2, 9).setValue(now);
       return { ok: true, returning: true, student: { solved: solvedMap(gh) } };
     }
   }
 
   sh.appendRow([student.github, student.name || "", student.enrollment || "",
-                student.section || "", student.hackerrank || "", student.codeforces || "",
-                now, now]);
+                student.section || "", student.leetcode || "", student.hackerrank || "",
+                student.codeforces || "", now, now]);
   return { ok: true, returning: false, student: { solved: {} } };
 }
 
@@ -191,7 +201,7 @@ function touch(gh) {
   var sh = sheet(STUDENTS, STUDENT_COLS);
   var data = rows(sh);
   for (var i = 0; i < data.length; i++) {
-    if (key(data[i][0]) === gh) { sh.getRange(i + 2, 8).setValue(new Date()); return; }
+    if (key(data[i][0]) === gh) { sh.getRange(i + 2, 9).setValue(new Date()); return; }
   }
 }
 
@@ -209,7 +219,7 @@ function solvedMap(gh) {
 function studentProgress(github) {
   var gh = key(github);
   if (!gh) return { ok: false, error: "github is required." };
-  return { ok: true, solved: solvedMap(gh) };
+  return { ok: true, solved: solvedMap(gh), verified: verifiedMap(gh) };
 }
 
 /* ------------------------------------------------------------- leaderboard */
@@ -225,8 +235,9 @@ function leaderboard() {
     if (!key(s[0])) return;
     acc[key(s[0])] = {
       name: s[1] || s[0], github: s[0], enrollment: s[2] || "", section: s[3] || "",
-      hackerrank: s[4] || "", codeforces: s[5] || "",
+      leetcode: s[4] || "", hackerrank: s[5] || "", codeforces: s[6] || "",
       points: 0, weekPoints: 0, lastWeekPoints: 0, priorPoints: 0,
+      verifiedPoints: 0, verifiedSolved: 0,
       solved: 0, weekSolved: 0, lastSolve: null
     };
   });
@@ -238,6 +249,7 @@ function leaderboard() {
     var pts = Number(r[6]) || 0;
     a.points += pts;
     a.solved += 1;
+    if (r[9] === true) { a.verifiedPoints += pts; a.verifiedSolved += 1; }
     if (!at) { a.priorPoints += pts; return; }
     if (at >= thisWeek) {
       a.weekPoints += pts;
@@ -277,4 +289,207 @@ function leaderboard() {
     lastWeekStart: lastWeek.toISOString(),
     rows: list
   };
+}
+
+/* ============================================================================
+   Submission verification
+   ----------------------------------------------------------------------------
+   Students tick problems by hand, which is trust-based. These functions read
+   what each platform publicly reports the student actually solved, and stamp
+   the matching Progress rows as verified. Anything a platform confirms is also
+   marked solved, so a student who never ticks anything still gets credit.
+
+   This has to run here rather than in the browser: neither leetcode.com nor
+   hackerrank.com sends CORS headers, so a page on github.io cannot call them.
+   ========================================================================== */
+
+// Where the site's problem list lives; used to map a platform slug to a problem.
+var ROADMAP_URL = "https://edusatyaki.github.io/SQLRoadmap/data/roadmap.json";
+
+/** slug -> {id, title, chapter, platform, difficulty, points}, cached for 6h. */
+function roadmapIndex() {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get("roadmap");
+  var data;
+  if (hit) {
+    data = JSON.parse(hit);
+  } else {
+    var res = UrlFetchApp.fetch(ROADMAP_URL, { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) throw new Error("Could not read roadmap.json (HTTP " + res.getResponseCode() + ").");
+    data = JSON.parse(res.getContentText());
+    try { cache.put("roadmap", JSON.stringify(data), 21600); } catch (e) {}   // >100KB: skip cache
+  }
+  var idx = {};
+  data.problems.forEach(function (p) {
+    if (p.s) idx[p.p.toLowerCase() + ":" + p.s.toLowerCase()] = p;
+  });
+  return idx;
+}
+
+/* ------------------------------------------------------------------ LeetCode */
+
+function leetcodeGraphQL(query, variables) {
+  var res = UrlFetchApp.fetch("https://leetcode.com/graphql", {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify({ query: query, variables: variables }),
+    headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://leetcode.com" },
+    muteHttpExceptions: true
+  });
+  if (res.getResponseCode() !== 200) return null;
+  var body = JSON.parse(res.getContentText());
+  return body && body.data ? body.data : null;
+}
+
+/** null when the username does not exist, otherwise {solved:{All,Easy,Medium,Hard}}. */
+function leetcodeProfile(username) {
+  var d = leetcodeGraphQL(
+    "query p($u:String!){matchedUser(username:$u){username submitStats{acSubmissionNum{difficulty count}}}}",
+    { u: username });
+  if (!d) return undefined;                 // network trouble — do not judge the user
+  if (!d.matchedUser) return null;          // definitively no such profile
+  var solved = {};
+  d.matchedUser.submitStats.acSubmissionNum.forEach(function (r) { solved[r.difficulty] = r.count; });
+  return { username: d.matchedUser.username, solved: solved };
+}
+
+/** The 20 most recent accepted submissions: [{titleSlug, at:Date}]. */
+function leetcodeRecentAccepted(username) {
+  var d = leetcodeGraphQL(
+    "query r($u:String!,$n:Int!){recentAcSubmissionList(username:$u,limit:$n){titleSlug timestamp}}",
+    { u: username, n: 20 });
+  if (!d || !d.recentAcSubmissionList) return [];
+  return d.recentAcSubmissionList.map(function (r) {
+    return { slug: r.titleSlug, at: new Date(Number(r.timestamp) * 1000) };
+  });
+}
+
+/* ---------------------------------------------------------------- HackerRank */
+
+/**
+ * Challenges the student has solved, newest first. Undocumented profile
+ * endpoint — it needs no login today, but HackerRank could change or close it,
+ * in which case verification quietly returns nothing rather than failing.
+ */
+function hackerrankSolved(username, maxPages) {
+  var out = [], cursor = null, pages = maxPages || 5;
+  for (var i = 0; i < pages; i++) {
+    var url = "https://www.hackerrank.com/rest/hackers/" + encodeURIComponent(username) +
+              "/recent_challenges?limit=50" + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
+    var res = UrlFetchApp.fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0" }, muteHttpExceptions: true
+    });
+    if (res.getResponseCode() !== 200) break;
+    var body;
+    try { body = JSON.parse(res.getContentText()); } catch (e) { break; }
+    (body.models || []).forEach(function (m) {
+      if (m.ch_slug) out.push({ slug: m.ch_slug, at: new Date(m.created_at) });
+    });
+    if (body.last_page || !body.cursor) break;
+    cursor = body.cursor;
+  }
+  return out;
+}
+
+/* -------------------------------------------------------------- verification */
+
+/**
+ * Reads one student's public solve history and stamps the Progress sheet.
+ * Returns what changed so the page can tell the student.
+ */
+function verifyStudent(github) {
+  var gh = key(github);
+  if (!gh) return { ok: false, error: "github is required." };
+
+  var students = rows(sheet(STUDENTS, STUDENT_COLS));
+  var me = null;
+  for (var i = 0; i < students.length; i++) {
+    if (key(students[i][0]) === gh) { me = students[i]; break; }
+  }
+  if (!me) return { ok: false, error: "That student is not registered." };
+
+  var idx = roadmapIndex();
+  var hits = [];
+
+  if (me[4]) {
+    leetcodeRecentAccepted(me[4]).forEach(function (s) {
+      var p = idx["leetcode:" + s.slug.toLowerCase()];
+      if (p) hits.push({ p: p, at: s.at, source: "leetcode" });
+    });
+  }
+  if (me[5]) {
+    hackerrankSolved(me[5]).forEach(function (s) {
+      var p = idx["hackerrank:" + s.slug.toLowerCase()];
+      if (p) hits.push({ p: p, at: s.at, source: "hackerrank" });
+    });
+  }
+
+  var pr = progressIndex();
+  var now = new Date();
+  var added = 0, confirmed = 0;
+
+  hits.forEach(function (h) {
+    var row = pr.idx[gh + "|" + h.p.id];
+    if (row) {
+      var prev = pr.data[row - 2];
+      var wasVerified = prev ? prev[9] === true : true;
+      // keep the earlier of the two timestamps: the platform's is the real one
+      pr.sh.getRange(row, 8, 1, 5).setValues([[h.at, true, true, now, h.source]]);
+      if (!wasVerified) confirmed++;
+    } else {
+      // solved on the platform but never ticked here — credit it anyway
+      pr.sh.appendRow([me[0], h.p.id, h.p.n, h.p.ch, h.p.p, h.p.d || "",
+                       Number(h.p.pts) || 0, h.at, true, true, now, h.source]);
+      pr.idx[gh + "|" + h.p.id] = pr.sh.getLastRow();
+      added++;
+    }
+  });
+
+  touch(gh);
+  return {
+    ok: true, checked: hits.length, newlySolved: added, newlyVerified: confirmed,
+    leetcodeProfile: me[4] ? leetcodeProfile(me[4]) : null,
+    solved: solvedMap(gh), verified: verifiedMap(gh)
+  };
+}
+
+/** problemId -> source, for everything a platform has confirmed. */
+function verifiedMap(gh) {
+  var data = rows(sheet(PROGRESS, PROGRESS_COLS));
+  var out = {};
+  for (var i = 0; i < data.length; i++) {
+    if (key(data[i][0]) !== gh || data[i][9] !== true) continue;
+    out[data[i][1]] = data[i][11] || "platform";
+  }
+  return out;
+}
+
+/**
+ * Sweeps the whole batch. Install installVerifyTrigger() once and this runs on
+ * its own; LeetCode only exposes the last 20 accepted submissions per profile,
+ * so polling often is what keeps the record complete.
+ */
+function verifyAll() {
+  var students = rows(sheet(STUDENTS, STUDENT_COLS));
+  var report = [];
+  students.forEach(function (s) {
+    if (!key(s[0])) return;
+    try {
+      var r = verifyStudent(s[0]);
+      report.push(s[0] + ": +" + r.newlySolved + " solved, +" + r.newlyVerified + " verified");
+    } catch (e) {
+      report.push(s[0] + ": " + e.message);
+    }
+    Utilities.sleep(1200);            // be gentle with both platforms
+  });
+  return report.join("\n");
+}
+
+/** Run once from the editor to poll every 30 minutes. */
+function installVerifyTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === "verifyAll") ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger("verifyAll").timeBased().everyMinutes(30).create();
+  return "verifyAll now runs every 30 minutes.";
 }

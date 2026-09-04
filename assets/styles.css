@@ -1,5 +1,6 @@
 /* SQL Roadmap — shared styles */
 :root{
+  color-scheme:light;
   --ground:#eceff4; --panel:#ffffff; --panel-2:#f6f8fa; --line:#d9dfe7; --line-soft:#e8ecf1;
   --ink:#141a23; --ink-2:#4a5768; --ink-3:#7a869a;
   --accent:#2e46b8; --accent-2:#5568d8; --accent-soft:#e4e8fb;
@@ -10,6 +11,8 @@
   --shadow:0 1px 2px rgba(20,26,35,.05),0 10px 30px -22px rgba(20,26,35,.5);
   --radius:10px;
 }
+/* Dark palette — parked. Every page carries data-theme="light" on <html>, which
+   switches both blocks below off. Remove that attribute to follow the OS again. */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --ground:#0d1219; --panel:#151c25; --panel-2:#1b232e; --line:#2a3542; --line-soft:#1f2833;
   --ink:#e6ecf3; --ink-2:#a7b4c4; --ink-3:#76859a;
@@ -55,8 +58,6 @@ p{margin:0}
   font-family:Archivo,sans-serif;letter-spacing:-.02em}
 .brand .mark{width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;
   display:grid;place-items:center;font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600}
-:root[data-theme="dark"] .brand .mark,:root:not([data-theme="light"]) .brand .mark{color:#0d1219}
-@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .brand .mark{color:#fff}}
 .nav-links{display:flex;gap:4px;margin-left:auto;align-items:center;flex-wrap:wrap}
 .nav-links a{color:var(--ink-2);text-decoration:none;padding:6px 11px;border-radius:7px;font-size:14px}
 .nav-links a:hover{background:var(--panel);color:var(--ink)}

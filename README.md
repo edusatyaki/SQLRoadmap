@@ -76,6 +76,13 @@ chapter; LeetCode premium problems are grouped at the bottom of the chapter behi
 11. Window Functions and Ranking · 12. Date and Time Analysis ·
 13. Pivoting and Conditional Aggregation · 14. Recursive Queries and Hierarchies
 
+## Theme
+
+The site is pinned to the light palette: every page carries `data-theme="light"` on its
+`<html>` element, which switches off both dark blocks in `assets/styles.css`. The dark
+palette is still there — delete that attribute from the three pages to follow the viewer's
+OS setting again.
+
 ## Updating the problem set
 
 `data/roadmap.json` is generated from the roadmap CSV. Each entry is

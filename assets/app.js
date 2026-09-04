@@ -130,6 +130,8 @@
   function mountNav(current) {
     var el = document.getElementById("nav");
     if (el) el.outerHTML = nav(current);
+    var y = String(new Date().getFullYear());
+    [].forEach.call(document.querySelectorAll("[data-year]"), function (n) { n.textContent = y; });
   }
 
   window.SQLR = {

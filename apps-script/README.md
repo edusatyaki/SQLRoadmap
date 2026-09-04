@@ -15,7 +15,7 @@ web apps cannot answer the CORS preflight that a JSON content-type would trigger
 | GET | `leaderboard` | — | `{ok, week, rows:[…]}` |
 | GET | `student` | `github` | `{ok, solved:{problemId: iso}, verified:{problemId: source}}` |
 | GET | `verify` | `github` | `{ok, newlySolved, newlyVerified, solved, verified}` — reads the student's LeetCode and HackerRank profiles |
-| POST | `register` | `{student:{name,enrollment,section,leetcode,github,hackerrank,codeforces}}` | `{ok, returning, student:{solved}}` |
+| POST | `register` | `{student:{name,enrollment,section,leetcode,github,hackerrank,codeforces}}` — rejects an unknown LeetCode or HackerRank handle with `leetcodeUnknown` / `hackerrankUnknown` | `{ok, returning, student:{solved}}` |
 | POST | `solve` | `{github, problemId, chapter, title, platform, difficulty, points, solved, at}` | `{ok}` |
 | POST | `sync` | `{github, student, solved:{id: iso}}` | `{ok, written}` |
 

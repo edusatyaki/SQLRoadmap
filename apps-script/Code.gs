@@ -117,9 +117,14 @@ function asDate(v) {
 function register(student) {
   if (!student || !key(student.github)) return { ok: false, error: "A GitHub username is required." };
   if (!student.leetcode) return { ok: false, error: "A LeetCode username is required." };
+  if (!student.hackerrank) return { ok: false, error: "A HackerRank username is required." };
   if (leetcodeProfile(student.leetcode) === null) {
     return { ok: false, leetcodeUnknown: true,
              error: "LeetCode has no profile called " + student.leetcode + "." };
+  }
+  if (hackerrankProfile(student.hackerrank) === null) {
+    return { ok: false, hackerrankUnknown: true,
+             error: "HackerRank has no profile called " + student.hackerrank + "." };
   }
   var sh = sheet(STUDENTS, STUDENT_COLS);
   var data = rows(sh);
@@ -391,6 +396,24 @@ function hackerrankSolved(username, maxPages) {
     cursor = body.cursor;
   }
   return out;
+}
+
+/**
+ * null when the username does not exist, undefined when the check itself failed,
+ * otherwise the profile. Same 404-vs-200 contract as the LeetCode check.
+ */
+function hackerrankProfile(username) {
+  var res = UrlFetchApp.fetch(
+    "https://www.hackerrank.com/rest/contests/master/hackers/" +
+      encodeURIComponent(username) + "/profile",
+    { headers: { "User-Agent": "Mozilla/5.0" }, muteHttpExceptions: true });
+  var code = res.getResponseCode();
+  if (code === 404) return null;
+  if (code !== 200) return undefined;            // rate limited or down — do not judge
+  try {
+    var b = JSON.parse(res.getContentText());
+    return (b && b.model) ? { username: b.model.username, name: b.model.name || "" } : null;
+  } catch (e) { return undefined; }
 }
 
 /* -------------------------------------------------------------- verification */

@@ -49,8 +49,9 @@
           <div class="err" id="e-leetcode" hidden></div>
         </div>
         <div class="field">
-          <label for="hackerrank">HackerRank username <span class="opt">— optional</span></label>
-          <input type="text" id="hackerrank" name="hackerrank" autocomplete="off" spellcheck="false" placeholder="riya_sharma">
+          <label for="hackerrank">HackerRank username</label>
+          <input type="text" id="hackerrank" name="hackerrank" autocomplete="off" spellcheck="false" placeholder="riya_sharma" required>
+          <div class="hint">Your HackerRank solves are read from this profile.</div>
           <div class="err" id="e-hackerrank" hidden></div>
         </div>
         <div class="field">
@@ -133,12 +134,16 @@
   var RULES = {
     name:       { re: /^.{2,60}$/, msg: "Enter your full name." },
     github:     { re: /^[A-Za-z\d](?:[A-Za-z\d]|-(?=[A-Za-z\d])){0,38}$/,
+                  empty: "Enter your GitHub username.",
                   msg: "That is not a valid GitHub username (letters, digits and dashes)." },
     leetcode:   { re: /^[A-Za-z\d_-]{1,40}$/,
+                  empty: "Enter your LeetCode username \u2014 your solves are read from it.",
                   msg: "Letters, digits, underscores and dashes only." },
     enrollment: { re: /^[A-Za-z\d][A-Za-z\d\/-]{2,29}$/,
                   msg: "Enter your enrollment number as it appears on your ID card." },
-    hackerrank: { re: /^[A-Za-z\d_]{1,50}$/, msg: "Letters, digits and underscores only.", optional: true },
+    hackerrank: { re: /^[A-Za-z\d_]{1,50}$/,
+                  empty: "Enter your HackerRank username \u2014 your solves are read from it.",
+                  msg: "Letters, digits and underscores only." },
     codeforces: { re: /^[A-Za-z\d_.-]{1,50}$/, msg: "Letters, digits, dots, dashes and underscores only.", optional: true }
   };
 
@@ -163,7 +168,8 @@
       var r = RULES[f], v = values[f];
       if (!v) {
         if (r.optional) { showError(f, ""); return; }
-        showError(f, r.msg); ok = false; return;
+        // an empty field needs "we need this", not a lecture on allowed characters
+        showError(f, r.empty || r.msg); ok = false; return;
       }
       if (!r.re.test(v)) { showError(f, r.msg); ok = false; return; }
       showError(f, "");
@@ -240,13 +246,15 @@
     // headers, so the browser cannot ask it directly.
     SQLR.post("register", { student: student })
       .then(function (res) {
-        if (res && res.leetcodeUnknown) {
+        var unknown = res && (res.leetcodeUnknown ? "leetcode" : (res.hackerrankUnknown ? "hackerrank" : null));
+        if (unknown) {
           SQLR.store.signOut();
-          showError("leetcode", "LeetCode has no profile called \u201c" + student.leetcode +
+          showError(unknown, (unknown === "leetcode" ? "LeetCode" : "HackerRank") +
+            " has no profile called \u201c" + student[unknown] +
             "\u201d. Check the spelling on your profile page.");
           btn.disabled = false;
-          btn.textContent = "Start the roadmap";
-          $("leetcode").focus();
+          btn.innerHTML = 'Start the roadmap <span class="arrow" aria-hidden="true">&rarr;</span>';
+          $(unknown).focus();
           return;
         }
         if (res && res.ok && res.student && res.student.solved) {

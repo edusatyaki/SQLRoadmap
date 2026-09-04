@@ -9,7 +9,6 @@
  *             joined | lastSeen
  *   Progress  github | problemId | title | chapter | platform | difficulty | points |
  *             solvedAt | solved | verified | verifiedAt | source
- *   Progress  github | problemId | title | chapter | platform | difficulty | points | solvedAt | solved
  */
 
 // Leave blank when this script lives inside the spreadsheet (Extensions ▸ Apps Script).
@@ -165,9 +164,12 @@ function solve(b) {
   if (!gh || !b.problemId) return { ok: false, error: "github and problemId are required." };
   var p = progressIndex();
   var at = asDate(b.at) || new Date();
-  var row = [b.github, b.problemId, b.title || "", b.chapter || "", b.platform || "",
-             b.difficulty || "", Number(b.points) || 0, at, b.solved !== false];
   var existing = p.idx[gh + "|" + b.problemId];
+  var prev = existing ? p.data[existing - 2] : null;
+  // A hand-tick must never clear a verification the platform already granted.
+  var row = [b.github, b.problemId, b.title || "", b.chapter || "", b.platform || "",
+             b.difficulty || "", Number(b.points) || 0, at, b.solved !== false,
+             prev ? prev[9] : "", prev ? prev[10] : "", prev ? prev[11] : ""];
   if (existing) p.sh.getRange(existing, 1, 1, PROGRESS_COLS.length).setValues([row]);
   else p.sh.appendRow(row);
   touch(gh);
@@ -187,7 +189,7 @@ function sync(b) {
     if (existing) {
       p.sh.getRange(existing, 8, 1, 2).setValues([[at, true]]);
     } else {
-      appends.push([b.github, id, "", "", "", "", 0, at, true]);
+      appends.push([b.github, id, "", "", "", "", 0, at, true, "", "", ""]);
     }
   });
   if (appends.length) {
@@ -458,7 +460,7 @@ function verifiedMap(gh) {
   var data = rows(sheet(PROGRESS, PROGRESS_COLS));
   var out = {};
   for (var i = 0; i < data.length; i++) {
-    if (key(data[i][0]) !== gh || data[i][9] !== true) continue;
+    if (key(data[i][0]) !== gh || data[i][9] !== true || data[i][8] === false) continue;
     out[data[i][1]] = data[i][11] || "platform";
   }
   return out;

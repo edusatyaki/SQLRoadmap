@@ -19,6 +19,10 @@ web apps cannot answer the CORS preflight that a JSON content-type would trigger
 | POST | `solve` | `{github, problemId, chapter, title, platform, difficulty, points, solved, at}` | `{ok}` |
 | POST | `sync` | `{github, student, solved:{id: iso}}` | `{ok, written}` |
 
+`solve` and `sync` fill in a problem's title and points from `data/roadmap.json` when the
+caller does not send them — the offline queue only keeps problem ids, and a row written
+without points scores nothing.
+
 Each leaderboard row carries `enrollment`, `section`, `verifiedPoints`, `verifiedSolved`, `points`, `weekPoints`, `lastWeekPoints`, `solved`,
 `weekSolved`, `lastSolve`, and four ranks: `rankAll`, `prevRankAll`, `rankWeek`,
 `prevRankWeek`.
@@ -37,7 +41,19 @@ minutes, and set `ROADMAP_URL` at the top of `Code.gs` if the site is not at
 **Progress** — `github | problemId | title | chapter | platform | difficulty | points | solvedAt | solved | verified | verifiedAt | source`
 
 One Progress row per student per problem, upserted. Un-ticking sets `solved` to `FALSE`
-rather than deleting the row, so you keep the history.
+rather than deleting the row, so you keep the history — but a solve the platform has
+confirmed counts regardless of the checkbox.
+
+Every write goes through `withLock()`. Without it the half-hourly sweep and a student's own
+check append the same row twice and the leaderboard counts it twice. `leaderboard()` folds
+duplicates together as it reads, so an already-dirty sheet still ranks correctly;
+`dedupeProgress()`, run from the editor, clears them out of the sheet itself, and `status`
+reports `duplicateRows`.
+
+## Tests
+
+`node apps-script/test.js` from the repo root runs `Code.gs` against an in-memory sheet —
+duplicate rows, rows with no points, and a verified solve that was later un-ticked.
 
 ## Redeploying
 

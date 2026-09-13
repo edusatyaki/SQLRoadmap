@@ -47,7 +47,7 @@
 
   <footer>
     Ranks recompute from the class sheet each time this page loads.<br>
-    Ties are broken by who reached the score first.
+    Students level on points share a rank; the one who got there first is listed above.
     <p class="byline">&copy; <span data-year>2026</span> Educator Satyaki Das &middot;
       All copyrights reserved</p>
   </footer>
@@ -76,7 +76,11 @@
   // last week's rank, in the all-time view the standing now against the standing
   // at the end of last week.
   function deltaCell(r) {
+    var scored = view === "week" ? r.weekPoints : r.points;
     var prev = view === "week" ? r.prevRankWeek : r.prevRankAll;
+    // Nobody who has not scored in this view has a standing to have moved from;
+    // ranking them by default order and calling it "new" every week is noise.
+    if (!scored) return '<span class="delta flat">—</span>';
     if (prev == null) return '<span class="delta new">new</span>';
     var d = prev - r.rank;
     if (d > 0) return '<span class="delta up">▲ ' + d + "</span>";
@@ -100,7 +104,14 @@
     var list = rows.slice().sort(function (a, b) {
       return (b[key] - a[key]) || (a.lastSolve || "").localeCompare(b.lastSolve || "");
     });
-    list.forEach(function (r, i) { r.rank = i + 1; });
+    // Equal scores share a rank, the same way the server ranks them — otherwise
+    // two students level on points show a ▲ and a ▼ against each other.
+    var rank = 0, prev = null;
+    list.forEach(function (r, i) {
+      var v = r[key] || 0;
+      if (prev === null || v !== prev) { rank = i + 1; prev = v; }
+      r.rank = rank;
+    });
 
     $("podium").innerHTML = list.slice(0, 3).map(function (r, i) {
       return '<div class="pod p' + (i + 1) + '">' +

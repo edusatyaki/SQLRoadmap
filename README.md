@@ -112,6 +112,18 @@ so a page on github.io cannot call them from the browser.
   student's total is platform-confirmed. Rank on verified points instead by sorting on
   `verifiedPoints` in `leaderboard.html`.
 
+### One row per student per problem
+
+Everything the leaderboard adds up depends on that invariant, and it is the sheet's job to
+hold it. Writes to `Progress` are read-modify-write — find the row, then set it or append it
+— so two that overlap both find nothing and both append: one problem, two rows, twice the
+points. The half-hourly sweep and a student pressing **Check my submissions** overlap exactly
+like that. Every write now takes the script lock, and `leaderboard()` folds any duplicate
+pair together as it reads, so a sheet that already has some still ranks correctly.
+
+To clear duplicates out of the sheet itself, run `dedupeProgress()` once from the Apps Script
+editor. `status` reports `duplicateRows`, so you can see whether there is anything to clean.
+
 ## Design
 
 The visual system is ported from [Newton School of Technology](https://www.newtonschool.co/newton-school-of-technology-nst/home):

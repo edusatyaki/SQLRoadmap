@@ -113,7 +113,12 @@
       r.rank = rank;
     });
 
-    $("podium").innerHTML = list.slice(0, 3).map(function (r, i) {
+    // Only people who actually scored in this view can be on the podium. In a
+    // fresh week that is nobody, and crowning whoever sorts first — which came
+    // down to who had gone longest without solving — is how a student with
+    // 0 pts ended up labelled FIRST.
+    var scored = list.filter(function (r) { return (r[key] || 0) > 0; });
+    $("podium").innerHTML = scored.slice(0, 3).map(function (r, i) {
       return '<div class="pod p' + (i + 1) + '">' +
         '<span class="place">' + ["First", "Second", "Third"][i] + "</span>" +
         '<span class="nm">' + SQLR.esc(r.name) + "</span>" +
@@ -124,7 +129,8 @@
     $("rows").innerHTML = list.length ? list.map(function (r) {
       var mine = me && r.github && r.github.toLowerCase() === me.github.toLowerCase();
       return "<tr" + (mine ? ' class="me"' : "") + ">" +
-        '<td class="rank' + (r.rank <= 3 ? " top" : "") + '">' + r.rank + "</td>" +
+        '<td class="rank' + (r[key] && r.rank <= 3 ? " top" : "") + '">' +
+          (r[key] ? r.rank : "—") + "</td>" +
         "<td>" + deltaCell(r) + "</td>" +
         '<td><span class="who"><b>' + SQLR.esc(r.name) + (mine ? " (you)" : "") + "</b>" +
           "<span>@" + SQLR.esc(r.github) +
@@ -137,6 +143,12 @@
         '<td class="num" style="color:var(--ink-3)">' + ago(r.lastSolve) + "</td>" +
         "</tr>";
     }).join("") : '<tr><td colspan="7"><div class="empty">Nobody has solved anything yet. Be first.</div></td></tr>';
+
+    if (list.length && !scored.length) {
+      $("rows").insertAdjacentHTML("afterbegin", '<tr><td colspan="7"><div class="empty">' +
+        (view === "week" ? "Nothing solved yet this week — the board opens with the first solve."
+                         : "Nobody has scored yet.") + "</div></td></tr>");
+    }
   }
 
   function localRows() {

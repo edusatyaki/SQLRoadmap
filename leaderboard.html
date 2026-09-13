@@ -14,10 +14,11 @@
   <section class="stack">
     <p class="eyebrow" id="weeklabel">&nbsp;</p>
     <h1 style="font-size:clamp(24px,4vw,34px)">Leaderboard</h1>
-    <p class="muted" style="max-width:62ch">Ranked by points earned. The arrow next to each rank
-      compares this week's standing with where that person stood at the end of last week.
-      <b>Verified</b> counts only the problems confirmed against the student's own LeetCode and
-      HackerRank profiles.</p>
+    <p class="muted" style="max-width:62ch">Ranked by <b>verified</b> solves — the problems
+      confirmed against the student's own LeetCode and HackerRank profiles. Ticking a box does
+      not move you up the board; solving the problem does. Points are still shown, and break a
+      tie between students level on solves. The arrow compares this week's standing with where
+      that person stood at the end of last week.</p>
   </section>
 
   <div id="status"></div>
@@ -38,7 +39,8 @@
       <table class="lb">
         <thead><tr>
           <th style="width:1%">#</th><th style="width:1%">Move</th><th>Student</th>
-          <th>Solved</th><th>Verified</th><th id="ptshead">Points this week</th><th>Last solve</th>
+          <th>Solved</th><th id="verhead">Verified</th><th id="ptshead">Points this week</th>
+          <th>Last solve</th>
         </tr></thead>
         <tbody id="rows"><tr><td colspan="7"><div class="empty">Loading…</div></td></tr></tbody>
       </table>
@@ -47,7 +49,7 @@
 
   <footer>
     Ranks recompute from the class sheet each time this page loads.<br>
-    Students level on points share a rank; the one who got there first is listed above.
+    Students level on verified solves share a rank; points break the tie, then whoever got there first.
     <p class="byline">&copy; <span data-year>2026</span> Educator Satyaki Das &middot;
       All copyrights reserved</p>
   </footer>
@@ -75,8 +77,13 @@
   // Movement compares like with like: in the weekly view this week's rank against
   // last week's rank, in the all-time view the standing now against the standing
   // at the end of last week.
+  // What the board is ordered on. Points stay on show, but only a solve a
+  // platform confirmed counts towards a rank.
+  function rankKey() { return view === "week" ? "weekVerified" : "verifiedSolved"; }
+  function ptsKey() { return view === "week" ? "weekPoints" : "points"; }
+
   function deltaCell(r) {
-    var scored = view === "week" ? r.weekPoints : r.points;
+    var scored = r[rankKey()];
     var prev = view === "week" ? r.prevRankWeek : r.prevRankAll;
     // Nobody who has not scored in this view has a standing to have moved from;
     // ranking them by default order and calling it "new" every week is noise.
@@ -98,11 +105,13 @@
   }
 
   function render(rows) {
-    var key = view === "week" ? "weekPoints" : "points";
+    var key = rankKey(), pts = ptsKey();
     $("ptshead").textContent = view === "week" ? "Points this week" : "Total points";
+    $("verhead").textContent = view === "week" ? "Verified this week" : "Verified";
 
     var list = rows.slice().sort(function (a, b) {
-      return (b[key] - a[key]) || (a.lastSolve || "").localeCompare(b.lastSolve || "");
+      return ((b[key] || 0) - (a[key] || 0)) || ((b[pts] || 0) - (a[pts] || 0)) ||
+             (a.lastSolve || "").localeCompare(b.lastSolve || "");
     });
     // Equal scores share a rank, the same way the server ranks them — otherwise
     // two students level on points show a ▲ and a ▼ against each other.
@@ -122,7 +131,7 @@
       return '<div class="pod p' + (i + 1) + '">' +
         '<span class="place">' + ["First", "Second", "Third"][i] + "</span>" +
         '<span class="nm">' + SQLR.esc(r.name) + "</span>" +
-        '<span class="pts">' + (r[key] || 0).toLocaleString() + " pts · " + (view === "week" ? (r.weekSolved || 0) : (r.solved || 0)) + " solved</span>" +
+        '<span class="pts">' + (r[key] || 0) + " verified · " + (r[pts] || 0).toLocaleString() + " pts</span>" +
         "</div>";
     }).join("");
 
@@ -137,17 +146,17 @@
           (r.hackerrank ? " · hr/" + SQLR.esc(r.hackerrank) : "") +
           (r.codeforces ? " · cf/" + SQLR.esc(r.codeforces) : "") + "</span></span></td>" +
         '<td class="num">' + (view === "week" ? (r.weekSolved || 0) : (r.solved || 0)) + "</td>" +
-        '<td class="num" title="Confirmed against the student\u2019s LeetCode and HackerRank profiles">' +
-          (r.verifiedSolved || 0) + "</td>" +
-        '<td class="num">' + (r[key] || 0).toLocaleString() + "</td>" +
+        '<td class="num rankkey" title="Confirmed against the student\u2019s LeetCode and HackerRank profiles — this is what the ranking is on">' +
+          (r[key] || 0) + "</td>" +
+        '<td class="num">' + (r[pts] || 0).toLocaleString() + "</td>" +
         '<td class="num" style="color:var(--ink-3)">' + ago(r.lastSolve) + "</td>" +
         "</tr>";
     }).join("") : '<tr><td colspan="7"><div class="empty">Nobody has solved anything yet. Be first.</div></td></tr>';
 
     if (list.length && !scored.length) {
       $("rows").insertAdjacentHTML("afterbegin", '<tr><td colspan="7"><div class="empty">' +
-        (view === "week" ? "Nothing solved yet this week — the board opens with the first solve."
-                         : "Nobody has scored yet.") + "</div></td></tr>");
+        (view === "week" ? "Nothing verified yet this week — the board opens with the first confirmed solve."
+                         : "Nothing confirmed yet.") + "</div></td></tr>");
     }
   }
 
@@ -155,19 +164,26 @@
     // offline fallback: only this browser's student
     if (!me) return [];
     var solved = SQLR.store.solved();
+    var verified = SQLR.store.verified();
     return SQLR.roadmap().then(function (data) {
-      var pts = 0, week = 0, last = null, n = 0, wn = 0;
+      var pts = 0, week = 0, last = null, n = 0, wn = 0, v = 0, wv = 0;
       var thisWeek = SQLR.isoWeek(new Date());
       data.problems.forEach(function (p) {
         var at = solved[p.id];
         if (!at) return;
+        var ok = !!verified[p.id];
         n++; pts += SQLR.points(p);
-        if (SQLR.isoWeek(new Date(at)) === thisWeek) { week += SQLR.points(p); wn++; }
+        if (ok) v++;
+        if (SQLR.isoWeek(new Date(at)) === thisWeek) {
+          week += SQLR.points(p); wn++;
+          if (ok) wv++;
+        }
         if (!last || at > last) last = at;
       });
       return [{ name: me.name, github: me.github, hackerrank: me.hackerrank,
                 codeforces: me.codeforces, points: pts, weekPoints: week,
-                solved: n, weekSolved: wn, verifiedSolved: 0, lastSolve: last, prevRankWeek: null, prevRankAll: null }];
+                solved: n, weekSolved: wn, verifiedSolved: v, weekVerified: wv,
+                lastSolve: last, prevRankWeek: null, prevRankAll: null }];
     });
   }
 

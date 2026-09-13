@@ -173,6 +173,8 @@ button[disabled]{opacity:.55;cursor:progress}
 .rank{font-family:var(--font);font-size:16px;font-variant-numeric:tabular-nums;
   width:1%;white-space:nowrap;color:var(--ink-3)}
 .rank.top{color:var(--gold);font-weight:600}
+/* the column the board is ordered on, so it reads as the number that matters */
+.lb td.rankkey{font-weight:600;color:var(--ink)}
 .who{display:flex;flex-direction:column;gap:1px;min-width:0}
 .who b{font-size:14.5px;font-weight:600}
 .who span{font-family:var(--font);font-size:11.5px;color:var(--ink-3)}

@@ -23,9 +23,14 @@ web apps cannot answer the CORS preflight that a JSON content-type would trigger
 caller does not send them — the offline queue only keeps problem ids, and a row written
 without points scores nothing.
 
-Each leaderboard row carries `enrollment`, `section`, `verifiedPoints`, `verifiedSolved`, `points`, `weekPoints`, `lastWeekPoints`, `solved`,
+Each leaderboard row carries `enrollment`, `section`, `verifiedPoints`, `verifiedSolved`,
+`weekVerified`, `lastWeekVerified`, `points`, `weekPoints`, `lastWeekPoints`, `solved`,
 `weekSolved`, `lastSolve`, and four ranks: `rankAll`, `prevRankAll`, `rankWeek`,
 `prevRankWeek`.
+
+The ranks are computed on **confirmed solves** — `verifiedSolved` and `weekVerified`, not
+points — so a hand-tick nobody checked earns no position. A student with none confirmed in
+the period gets `null` rather than a number, and the page shows them unranked.
 
 ## Sheets
 

@@ -60,10 +60,15 @@ The site appears at `https://edusatyaki.github.io/SQLRoadmap/` a minute later.
 | Medium | 20 |
 | Hard | 30 |
 
-The full roadmap is worth **6,550 points**. Rank movement compares like with like — in the
-weekly view, this week's rank against last week's; in the all-time view, the standing now
-against the standing at the end of last week. Someone with no points in the comparison
-period shows as **new**.
+The full roadmap is worth **6,550 points**, but points do not decide the order: **the board
+is ranked on verified solves** — problems confirmed against the student's own LeetCode and
+HackerRank profiles. Points are shown, and break a tie between students level on solves.
+Ticking a box moves nobody up.
+
+Rank movement compares like with like — in the weekly view, this week's confirmed solves
+against last week's; in the all-time view, the standing now against the standing at the end
+of last week. Someone with nothing confirmed in the period is unranked rather than placed,
+so a fresh Monday does not crown whoever happens to sort first.
 
 ## Chapters
 
@@ -108,9 +113,10 @@ so a page on github.io cannot call them from the browser.
 - **Both need public profiles.** A private profile cannot be read.
 - **Verification confirms a solve, not authorship.** It proves the account solved the problem,
   not that the student wrote the SQL themselves.
-- The leaderboard still ranks on total points; the **Verified** column shows how much of each
-  student's total is platform-confirmed. Rank on verified points instead by sorting on
-  `verifiedPoints` in `leaderboard.html`.
+- **The leaderboard ranks on verified solves**, so an unconfirmed tick earns points on the
+  page but no position on the board. A student whose profile cannot be read — private, or
+  renamed — will sit unranked however much they tick, which is the trade for a board that
+  cannot be gamed by checkbox.
 
 ### One row per student per problem
 

@@ -353,6 +353,7 @@ function leaderboard() {
       leetcode: s[4] || "", hackerrank: s[5] || "", codeforces: s[6] || "",
       points: 0, weekPoints: 0, lastWeekPoints: 0, priorPoints: 0,
       verifiedPoints: 0, verifiedSolved: 0,
+      weekVerified: 0, lastWeekVerified: 0, priorVerified: 0,
       solved: 0, weekSolved: 0, lastSolve: null
     };
   });
@@ -362,16 +363,28 @@ function leaderboard() {
     if (!a || r[8] === false) return;
     var at = asDate(r[7]);
     var pts = Number(r[6]) || 0;
+    var confirmed = r[9] === true;
     a.points += pts;
     a.solved += 1;
-    if (r[9] === true) { a.verifiedPoints += pts; a.verifiedSolved += 1; }
-    if (!at) { a.priorPoints += pts; return; }
+    if (confirmed) { a.verifiedPoints += pts; a.verifiedSolved += 1; }
+    // Ranking is on confirmed solves, so every bucket the ranks are drawn from
+    // needs its own confirmed count, not just its points.
+    if (!at) {
+      a.priorPoints += pts;
+      if (confirmed) a.priorVerified += 1;
+      return;
+    }
     if (at >= thisWeek) {
       a.weekPoints += pts;
       a.weekSolved += 1;
+      if (confirmed) a.weekVerified += 1;
     } else {
       a.priorPoints += pts;
-      if (at >= lastWeek) a.lastWeekPoints += pts;
+      if (confirmed) a.priorVerified += 1;
+      if (at >= lastWeek) {
+        a.lastWeekPoints += pts;
+        if (confirmed) a.lastWeekVerified += 1;
+      }
     }
     var iso = at.toISOString();
     if (!a.lastSolve || iso > a.lastSolve) a.lastSolve = iso;
@@ -381,7 +394,10 @@ function leaderboard() {
 
   // Rank each student on four scales so the site can draw ▲ / ▼ for either view:
   //   all-time now vs all-time at the end of last week,
-  //   this week's points vs last week's points.
+  //   this week vs last week.
+  // The key is confirmed solves, not points: a tick nobody checked should not
+  // move anyone up the board, and Easy/Medium/Hard weighting does not decide
+  // the order.
   // Equal scores share a rank. Handing them 4th and 5th instead would draw a
   // ▲ or a ▼ next week for two students who never moved past each other.
   function rankBy(field, target) {
@@ -393,15 +409,18 @@ function leaderboard() {
         r[target] = r[field] > 0 ? rank : null;
       });
   }
-  rankBy("points", "rankAll");
-  rankBy("priorPoints", "prevRankAll");
-  rankBy("weekPoints", "rankWeek");
-  rankBy("lastWeekPoints", "prevRankWeek");
+  rankBy("verifiedSolved", "rankAll");
+  rankBy("priorVerified", "prevRankAll");
+  rankBy("weekVerified", "rankWeek");
+  rankBy("lastWeekVerified", "prevRankWeek");
 
+  // Level on confirmed solves, the harder set breaks the tie, then whoever got
+  // there first.
   list.sort(function (a, b) {
-    return (b.points - a.points) || String(a.lastSolve || "").localeCompare(String(b.lastSolve || ""));
+    return (b.verifiedSolved - a.verifiedSolved) || (b.verifiedPoints - a.verifiedPoints) ||
+           String(a.lastSolve || "").localeCompare(String(b.lastSolve || ""));
   });
-  list.forEach(function (r) { delete r.priorPoints; });
+  list.forEach(function (r) { delete r.priorPoints; delete r.priorVerified; });
 
   return {
     ok: true,

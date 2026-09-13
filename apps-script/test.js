@@ -167,6 +167,27 @@ ok("leaderboard unchanged by the cleanup",
    leaderboard().rows.filter(r => key(r.github) === "ritammishra2007")[0].points === want);
 ok("lock never re-entered within one execution", MAXLOCK === 1, "max depth " + MAXLOCK);
 
+console.log("\nranking is on confirmed solves, not points");
+S.appendRow(["tickerbob", "Ticker Bob", 3, "Lab 1", "tb", "tb", "", now, now]);
+// Four hard problems ticked by hand and confirmed by nobody: 120 points, and
+// it must not put him above a student with two confirmed easy ones.
+["lc1194", "lc1341", "lc185", "lc262"].forEach(function (id, i) {
+  PR.v.push(["tickerbob", id, P[id].n, P[id].ch, P[id].p, P[id].d, P[id].pts,
+             d("2026-09-1" + (4 + i) + "T08:00:00Z"), true, "", "", ""]);
+});
+const lb3 = leaderboard();
+const bob = lb3.rows.filter(r => key(r.github) === "tickerbob")[0];
+const rit = lb3.rows.filter(r => key(r.github) === "ritammishra2007")[0];
+ok("unverified ticks still show as points", bob.points > rit.points,
+   bob.points + " vs " + rit.points);
+ok("but earn no rank", bob.rankAll === null, String(bob.rankAll));
+ok("and sort below a student with confirmed solves",
+   lb3.rows.indexOf(rit) < lb3.rows.indexOf(bob));
+ok("the confirmed student is first", rit.rankAll === 1, String(rit.rankAll));
+ok("weekly confirmed count is reported", typeof rit.weekVerified === "number");
+ok("internal buckets are not leaked to the page",
+   !("priorPoints" in rit) && !("priorVerified" in rit));
+
 console.log("\nroadmap lookups stay lazy");
 FIXTURE_FETCHES = 0; ROADMAP = null;
 leaderboard();

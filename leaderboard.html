@@ -39,10 +39,10 @@
       <table class="lb">
         <thead><tr>
           <th style="width:1%">#</th><th style="width:1%">Move</th><th>Student</th>
-          <th>Solved</th><th id="verhead">Verified</th><th>Total points</th>
+          <th id="verhead">Verified</th><th>Total points</th>
           <th>Last solve</th>
         </tr></thead>
-        <tbody id="rows"><tr><td colspan="7"><div class="empty">Loading…</div></td></tr></tbody>
+        <tbody id="rows"><tr><td colspan="6"><div class="empty">Loading…</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -144,16 +144,15 @@
           "<span>@" + SQLR.esc(r.github) +
           (r.hackerrank ? " · hr/" + SQLR.esc(r.hackerrank) : "") +
           (r.codeforces ? " · cf/" + SQLR.esc(r.codeforces) : "") + "</span></span></td>" +
-        '<td class="num">' + (view === "week" ? (r.weekSolved || 0) : (r.solved || 0)) + "</td>" +
         '<td class="num rankkey" title="Total problems confirmed against the student\u2019s LeetCode and HackerRank profiles">' +
           (r.verifiedSolved || 0) + "</td>" +
         '<td class="num">' + (r.points || 0).toLocaleString() + "</td>" +
         '<td class="num" style="color:var(--ink-3)">' + ago(r.lastSolve) + "</td>" +
         "</tr>";
-    }).join("") : '<tr><td colspan="7"><div class="empty">Nobody has solved anything yet. Be first.</div></td></tr>';
+    }).join("") : '<tr><td colspan="6"><div class="empty">Nobody has solved anything yet. Be first.</div></td></tr>';
 
     if (list.length && !scored.length) {
-      $("rows").insertAdjacentHTML("afterbegin", '<tr><td colspan="7"><div class="empty">' +
+      $("rows").insertAdjacentHTML("afterbegin", '<tr><td colspan="6"><div class="empty">' +
         (view === "week" ? "Nothing verified yet this week — the board opens with the first confirmed solve."
                          : "Nothing confirmed yet.") + "</div></td></tr>");
     }

@@ -105,7 +105,7 @@
 
   function render(rows) {
     var key = rankKey();
-    $("verhead").textContent = view === "week" ? "Verified this week" : "Verified";
+    $("verhead").textContent = "Verified";
 
     var list = rows.slice().sort(function (a, b) {
       return ((b[key] || 0) - (a[key] || 0)) || ((b.points || 0) - (a.points || 0)) ||
@@ -129,7 +129,8 @@
       return '<div class="pod p' + (i + 1) + '">' +
         '<span class="place">' + ["First", "Second", "Third"][i] + "</span>" +
         '<span class="nm">' + SQLR.esc(r.name) + "</span>" +
-        '<span class="pts">' + (r[key] || 0) + " verified · " + (r.points || 0).toLocaleString() + " pts</span>" +
+        '<span class="pts">' + (r[key] || 0) + (view === "week" ? " verified this week" : " verified") +
+          " · " + (r.points || 0).toLocaleString() + " pts</span>" +
         "</div>";
     }).join("");
 
@@ -144,8 +145,8 @@
           (r.hackerrank ? " · hr/" + SQLR.esc(r.hackerrank) : "") +
           (r.codeforces ? " · cf/" + SQLR.esc(r.codeforces) : "") + "</span></span></td>" +
         '<td class="num">' + (view === "week" ? (r.weekSolved || 0) : (r.solved || 0)) + "</td>" +
-        '<td class="num rankkey" title="Confirmed against the student\u2019s LeetCode and HackerRank profiles — this is what the ranking is on">' +
-          (r[key] || 0) + "</td>" +
+        '<td class="num rankkey" title="Total problems confirmed against the student\u2019s LeetCode and HackerRank profiles">' +
+          (r.verifiedSolved || 0) + "</td>" +
         '<td class="num">' + (r.points || 0).toLocaleString() + "</td>" +
         '<td class="num" style="color:var(--ink-3)">' + ago(r.lastSolve) + "</td>" +
         "</tr>";
